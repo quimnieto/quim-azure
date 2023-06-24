@@ -58,7 +58,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
     publisher = "cognosys"
   }
 
-
   source_image_reference {
     publisher = "cognosys"
     offer     = "centos-8-stream-free"
