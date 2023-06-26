@@ -4,10 +4,10 @@ output "acr_login_server" {
 
 output "acr_admin_user" {
   value     = azurerm_container_registry.acr.admin_username
-  sensitive = true
+  sensitive = false
 }
 
 output "acr_admin_pass" {
   value     = azurerm_container_registry.acr.admin_password
-  sensitive = true
+  sensitive = false
 }

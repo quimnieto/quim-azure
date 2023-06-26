@@ -5,7 +5,7 @@ variable "location" {
 }
 
 variable "container_registry_name" {
-  default = "containerRegistryQuim"
+  default = "containerregistryquim"
 }
 
 variable "container_registry_sku" {

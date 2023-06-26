@@ -24,3 +24,9 @@ module "virtual_machine" {
     resource_group_name     = var.resource_group_name
     location                = var.location
 }
+
+module "aks_cluster" {
+    source                  = "./modules/aks-cluster"
+    resource_group_name     = var.resource_group_name
+    location                = var.location
+}
