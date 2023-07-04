@@ -29,4 +29,5 @@ module "aks_cluster" {
     source                  = "./modules/aks-cluster"
     resource_group_name     = var.resource_group_name
     location                = var.location
+    acr_id                  = module.container_registry.acr_id
 }

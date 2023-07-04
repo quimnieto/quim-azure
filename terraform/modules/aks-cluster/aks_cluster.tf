@@ -1,5 +1,5 @@
 resource "azurerm_kubernetes_cluster" "cluster" {
-  name                = var.custer_name
+  name                = var.cluster_name
   location            = var.location
   resource_group_name = var.resource_group_name
   dns_prefix          = var.dns_prefix
@@ -13,4 +13,11 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   identity {
     type = "SystemAssigned"
   }
+}
+
+resource "azurerm_role_assignment" "acrPull" {
+    principal_id                     = azurerm_kubernetes_cluster.cluster.kubelet_identity[0].object_id
+    role_definition_name             = "AcrPull"
+    scope                            = var.acr_id
+    skip_service_principal_aad_check = true
 }
