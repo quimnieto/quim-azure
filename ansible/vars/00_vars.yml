@@ -1,0 +1,5 @@
+username: 'root'
+password: 'root'
+key_name: 'webserver_key'
+csr_name: 'webserver_csr'
+cert_name: 'webserver_cert'

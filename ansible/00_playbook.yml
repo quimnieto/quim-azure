@@ -1,0 +1,94 @@
+- name: Instalar y configurar servidor web contenerizado
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - vars/00_vars.yml
+  tasks:
+    - name: Instalar herramientas necesarias
+      ansible.builtin.apt:
+        update_cache: yes
+        pkg:
+        - podman
+        - skopeo
+        - httpd-tools
+        - openssl
+
+    - name: Crear directorio de trabajo
+      file:
+        path: ~/webserver
+        state: directory
+
+    - name: Crear archivo de credenciales
+      command: htpasswd -cBb ~/webserver/.creds "{{ username }}" "{{ password }}"
+
+    - name: Generar certificado autofirmado
+      vars:
+        key_name: server.key
+        csr_name: server.csr
+        cert_name: server.crt
+        common_name: vm1
+      block:
+        - name: Generar clave privada para el certificado
+          openssl_privatekey:
+            path: "~/webserver/{{ key_name }}"
+            size: 2048
+
+        - name: Generar petición de firma del certificado
+          openssl_csr:
+            path: "~/webserver/{{ csr_name }}"
+            privatekey_path: "~/webserver/{{ key_name }}"
+            common_name: "{{ common_name }}"
+
+        - name: Generar certificado utilizando la clave privada y la petición de firma
+          openssl_certificate:
+            path: "~/webserver/{{ cert_name }}"
+            privatekey_path: "~/webserver/{{ key_name }}"
+            csr_path: "~/webserver/{{ csr_name }}"
+            days: 365
+
+    - name: Crear página principal del servidor web
+      copy:
+        content: "<p>This is the web server</p>"
+        dest: "~/webserver/index.html"
+
+    - name: Crear configuración del servidor web
+      template:
+        src: templates/httpd.conf.j2
+        dest: ~/webserver/httpd.conf
+
+    - name: Crear archivo de autenticación básica
+      copy:
+        content: |
+          AuthType Basic
+          AuthName "Restricted Content"
+          AuthUserFile /usr/local/apache2/.creds
+          Require valid-user
+        dest: "~/webserver/.htaccess"
+
+    - name: Crear archivo Containerfile
+      copy:
+        content: |
+          FROM docker.io/httpd:latest
+          COPY index.html /usr/local/apache2/htdocs/
+          COPY .htaccess /usr/local/apache2/htdocs/
+          COPY httpd.conf /usr/local/apache2/conf/
+          COPY .creds /usr/local/apache2/
+          COPY localhost.key /usr/local/apache2/
+          COPY localhost.crt /usr/local/apache2/
+        dest: "~/webserver/Containerfile"
+
+    - name: Generar imagen del contenedor
+      command: sudo podman build -t webserver ~/webserver/
+
+    - name: Etiquetar imagen del contenedor
+      command: sudo podman tag localhost/webserver:latest "{{ registry_url }}/{{ repository }}:{{ tag }}"
+
+    - name: Autenticarse en el Registry
+      command: sudo podman login -u "{{ registry_username }}" -p "{{ registry_password }}"
+
+    - name: Subir imagen del contenedor al Registry
+      command: sudo podman push "{{ registry_url }}/{{ repository }}:{{ tag }}"
+
+    - name: Crear contenedor del servicio web
+      command: sudo podman create --name web -p
