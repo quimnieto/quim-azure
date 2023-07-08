@@ -1,0 +1,8 @@
+- name: Verificar conectividad con el host
+  hosts: webservers
+  gather_facts: false
+  tasks:
+    - name: Ping
+      ping:
+      vars:
+        ansible_user: azureroot

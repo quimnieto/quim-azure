@@ -1,0 +1,5 @@
+registry_url: 'containerregistryquim.azurecr.io'
+repository: 'webserver'
+tag: 'casopractico2'
+registry_username: 'containerregistryquim'
+registry_password: 'bu2U5iqPabdIYbmQVvGKYxeFWZs60bnDp1HmqO/FIz+ACRCCHtZn'

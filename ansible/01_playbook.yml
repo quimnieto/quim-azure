@@ -1,0 +1,51 @@
+- name: Configure VM
+  hosts: webservers
+  gather_facts: false
+  become: true
+  vars_files:
+    - vars/container_registry_vars.yml
+    - vars/01_vars.yml
+  vars:
+    ansible_user: "{{ username }}"
+    ansible_ssh_private_key_file: "{{ private_key }}"
+  tasks:
+    - name: Ping
+      ping:
+
+    - name: Install Podman
+      package:
+        name: podman
+        state: present
+
+    - name: Login to registry
+      containers.podman.podman_login:
+        username: "{{ registry_username }}"
+        password: "{{ registry_password }}"
+        registry: "{{ registry_url }}"
+
+    - name: Pull the webserver image
+      containers.podman.podman_image:
+        name: "{{ registry_url }}/{{ repository }}"
+        tag: "{{ tag }}"
+
+    - name: Run container
+      containers.podman.podman_container:
+        name: webserver
+        image: "{{ registry_url }}/{{ repository }}:{{ tag }}"
+        ports:
+          - "8080:443"
+
+    - name: Verificar si el contenedor existe
+      ansible.builtin.command: podman inspect webserver
+      ignore_errors: false
+      register: container_inspect
+
+    - name: systemd vars_files
+      ansible.builtin.systemd:
+        name: webserver
+        state: started
+        enabled: true
+        daemon_reload: yes
+      when: container_inspect.rc == 0
+      
+    

@@ -3,6 +3,7 @@
   connection: local
   become: true
   vars_files:
+    - vars/container_registry_vars.yml
     - vars/00_vars.yml
   tasks:
     - name: Instalar herramientas necesarias
@@ -77,7 +78,7 @@
           COPY server.crt /usr/local/apache2/
         dest: "webserver/Containerfile"
   
-    - name: Build a basic OCI image
+    - name: Build the image
       containers.podman.podman_image:
           name: webserver
           path: "webserver"
