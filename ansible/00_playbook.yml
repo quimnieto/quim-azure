@@ -28,9 +28,9 @@
 
     - name: Generar certificado autofirmado
       vars:
-        key_name: server.key
-        csr_name: server.csr
-        cert_name: server.crt
+        key_name: localhost.key
+        csr_name: localhost.csr
+        cert_name: localhost.crt
         common_name: vm1
       block:
         - name: Generar clave privada para el certificado
@@ -74,8 +74,8 @@
           COPY .htaccess /usr/local/apache2/htdocs/
           COPY httpd.conf /usr/local/apache2/conf/
           COPY .creds /usr/local/apache2/
-          COPY server.key /usr/local/apache2/
-          COPY server.crt /usr/local/apache2/
+          COPY localhost.key /usr/local/apache2/
+          COPY localhost.crt /usr/local/apache2/
         dest: "webserver/Containerfile"
   
     - name: Build the image

@@ -30,19 +30,20 @@
 
     - name: Run container
       containers.podman.podman_container:
-        name: webserver
+        name: web
         image: "{{ registry_url }}/{{ repository }}:{{ tag }}"
+        state: started
         ports:
           - "8080:443"
 
     - name: Verificar si el contenedor existe
-      ansible.builtin.command: podman inspect webserver
+      ansible.builtin.command: podman inspect web
       ignore_errors: false
       register: container_inspect
 
     - name: systemd vars_files
       ansible.builtin.systemd:
-        name: webserver
+        name: web
         state: started
         enabled: true
         daemon_reload: yes
