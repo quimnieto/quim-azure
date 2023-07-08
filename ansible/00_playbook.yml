@@ -7,20 +7,23 @@
   tasks:
     - name: Instalar herramientas necesarias
       ansible.builtin.apt:
-        update_cache: yes
         pkg:
         - podman
         - skopeo
-        - httpd-tools
         - openssl
 
     - name: Crear directorio de trabajo
       file:
-        path: ~/webserver
+        path: webserver
         state: directory
 
     - name: Crear archivo de credenciales
-      command: htpasswd -cBb ~/webserver/.creds "{{ username }}" "{{ password }}"
+      community.general.htpasswd:
+        path: "webserver/.creds"
+        name: "{{ username }}"
+        password: "{{ password }}"
+        crypt_scheme: bcrypt
+        state: present
 
     - name: Generar certificado autofirmado
       vars:
@@ -31,40 +34,36 @@
       block:
         - name: Generar clave privada para el certificado
           openssl_privatekey:
-            path: "~/webserver/{{ key_name }}"
+            path: "webserver/{{ key_name }}"
             size: 2048
 
         - name: Generar petición de firma del certificado
           openssl_csr:
-            path: "~/webserver/{{ csr_name }}"
-            privatekey_path: "~/webserver/{{ key_name }}"
+            path: "webserver/{{ csr_name }}"
+            privatekey_path: "webserver/{{ key_name }}"
             common_name: "{{ common_name }}"
 
         - name: Generar certificado utilizando la clave privada y la petición de firma
           openssl_certificate:
-            path: "~/webserver/{{ cert_name }}"
-            privatekey_path: "~/webserver/{{ key_name }}"
-            csr_path: "~/webserver/{{ csr_name }}"
-            days: 365
+            path: "webserver/{{ cert_name }}"
+            privatekey_path: "webserver/{{ key_name }}"
+            csr_path: "webserver/{{ csr_name }}"
+            provider: selfsigned
 
     - name: Crear página principal del servidor web
       copy:
-        content: "<p>This is the web server</p>"
-        dest: "~/webserver/index.html"
+        src: webserver_files/index.html
+        dest: "webserver/index.html"
 
     - name: Crear configuración del servidor web
       template:
-        src: templates/httpd.conf.j2
-        dest: ~/webserver/httpd.conf
+        src: webserver_files/httpd.conf
+        dest: webserver/httpd.conf
 
     - name: Crear archivo de autenticación básica
       copy:
-        content: |
-          AuthType Basic
-          AuthName "Restricted Content"
-          AuthUserFile /usr/local/apache2/.creds
-          Require valid-user
-        dest: "~/webserver/.htaccess"
+        src: webserver_files/.htaccess
+        dest: "webserver/.htaccess"
 
     - name: Crear archivo Containerfile
       copy:
@@ -74,21 +73,29 @@
           COPY .htaccess /usr/local/apache2/htdocs/
           COPY httpd.conf /usr/local/apache2/conf/
           COPY .creds /usr/local/apache2/
-          COPY localhost.key /usr/local/apache2/
-          COPY localhost.crt /usr/local/apache2/
-        dest: "~/webserver/Containerfile"
+          COPY server.key /usr/local/apache2/
+          COPY server.crt /usr/local/apache2/
+        dest: "webserver/Containerfile"
+  
+    - name: Build a basic OCI image
+      containers.podman.podman_image:
+          name: webserver
+          path: "webserver"
 
-    - name: Generar imagen del contenedor
-      command: sudo podman build -t webserver ~/webserver/
+    - name: Tag the generated image
+      containers.podman.podman_tag:
+        image: localhost/webserver:latest
+        target_names:
+          - "{{ registry_url }}/{{ repository }}:{{ tag }}"
 
-    - name: Etiquetar imagen del contenedor
-      command: sudo podman tag localhost/webserver:latest "{{ registry_url }}/{{ repository }}:{{ tag }}"
+    - name: Login to registry
+      containers.podman.podman_login:
+        username: "{{ registry_username }}"
+        password: "{{ registry_password }}"
+        registry: "{{ registry_url }}"
 
-    - name: Autenticarse en el Registry
-      command: sudo podman login -u "{{ registry_username }}" -p "{{ registry_password }}"
+    - name: Push de la imagen al repositorio
+      command: podman push "{{ registry_url }}/{{ repository }}:{{ tag }}"
+      become: true
 
-    - name: Subir imagen del contenedor al Registry
-      command: sudo podman push "{{ registry_url }}/{{ repository }}:{{ tag }}"
 
-    - name: Crear contenedor del servicio web
-      command: sudo podman create --name web -p
