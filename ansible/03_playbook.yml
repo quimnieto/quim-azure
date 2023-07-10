@@ -1,0 +1,11 @@
+- name: Configure k8s
+  hosts: kubernetes
+  gather_facts: false
+  become: true
+  vars_files:
+    - vars/container_registry_vars.yml
+  tasks:
+    - name: Ping
+      ping:
+      
+    

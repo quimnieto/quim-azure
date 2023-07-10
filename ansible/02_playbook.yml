@@ -1,0 +1,28 @@
+- name: Pull Redis image and push it to the registry
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - vars/container_registry_vars.yml
+  tasks:
+    - name: Download Redis image
+      containers.podman.podman_image:
+        name: redis
+
+    - name: Tag the generated image
+      containers.podman.podman_tag:
+        image: docker.io/library/redis:latest
+        target_names:
+          - "{{ registry_url }}/{{ repository }}:{{ redis_image_tag }}"
+
+    - name: Login to registry
+      containers.podman.podman_login:
+        username: "{{ registry_username }}"
+        password: "{{ registry_password }}"
+        registry: "{{ registry_url }}"
+
+    - name: Push the image to the registry
+      command: podman push "{{ registry_url }}/{{ repository }}:{{ redis_image_tag }}"
+      become: true
+
+

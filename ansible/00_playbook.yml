@@ -1,4 +1,4 @@
-- name: Instalar y configurar servidor web contenerizado
+- name: Build webserver image and push it to the registry
   hosts: localhost
   connection: local
   become: true
@@ -6,67 +6,67 @@
     - vars/container_registry_vars.yml
     - vars/00_vars.yml
   tasks:
-    - name: Instalar herramientas necesarias
+    - name: Install tools
       ansible.builtin.apt:
         pkg:
         - podman
         - skopeo
         - openssl
 
-    - name: Crear directorio de trabajo
+    - name: Create temp workdir
       file:
-        path: webserver
+        path: webserver_tmp
         state: directory
 
-    - name: Crear archivo de credenciales
+    - name: Create credential file
       community.general.htpasswd:
-        path: "webserver/.creds"
+        path: "webserver_tmp/.creds"
         name: "{{ username }}"
         password: "{{ password }}"
         crypt_scheme: bcrypt
         state: present
 
-    - name: Generar certificado autofirmado
+    - name: Generate self-signed certificate
       vars:
         key_name: localhost.key
         csr_name: localhost.csr
         cert_name: localhost.crt
         common_name: vm1
       block:
-        - name: Generar clave privada para el certificado
+        - name: Generate private key
           openssl_privatekey:
-            path: "webserver/{{ key_name }}"
+            path: "webserver_tmp/{{ key_name }}"
             size: 2048
 
-        - name: Generar petición de firma del certificado
+        - name: Generate sign request for the certificate
           openssl_csr:
-            path: "webserver/{{ csr_name }}"
-            privatekey_path: "webserver/{{ key_name }}"
+            path: "webserver_tmp/{{ csr_name }}"
+            privatekey_path: "webserver_tmp/{{ key_name }}"
             common_name: "{{ common_name }}"
 
-        - name: Generar certificado utilizando la clave privada y la petición de firma
+        - name: Generate certficate using the private key and the sign request
           openssl_certificate:
-            path: "webserver/{{ cert_name }}"
-            privatekey_path: "webserver/{{ key_name }}"
-            csr_path: "webserver/{{ csr_name }}"
+            path: "webserver_tmp/{{ cert_name }}"
+            privatekey_path: "webserver_tmp/{{ key_name }}"
+            csr_path: "webserver_tmp/{{ csr_name }}"
             provider: selfsigned
 
-    - name: Crear página principal del servidor web
+    - name: Copy webpage
       copy:
         src: webserver_files/index.html
-        dest: "webserver/index.html"
+        dest: "webserver_tmp/index.html"
 
-    - name: Crear configuración del servidor web
+    - name: Copy server configuration
       template:
         src: webserver_files/httpd.conf
-        dest: webserver/httpd.conf
+        dest: webserver_tmp/httpd.conf
 
-    - name: Crear archivo de autenticación básica
+    - name: Copy auth file
       copy:
         src: webserver_files/.htaccess
-        dest: "webserver/.htaccess"
+        dest: "webserver_tmp/.htaccess"
 
-    - name: Crear archivo Containerfile
+    - name: Create Containerfile
       copy:
         content: |
           FROM docker.io/httpd:latest
@@ -76,18 +76,18 @@
           COPY .creds /usr/local/apache2/
           COPY localhost.key /usr/local/apache2/
           COPY localhost.crt /usr/local/apache2/
-        dest: "webserver/Containerfile"
+        dest: "webserver_tmp/Containerfile"
   
     - name: Build the image
       containers.podman.podman_image:
           name: webserver
-          path: "webserver"
+          path: "webserver_tmp"
 
     - name: Tag the generated image
       containers.podman.podman_tag:
         image: localhost/webserver:latest
         target_names:
-          - "{{ registry_url }}/{{ repository }}:{{ tag }}"
+          - "{{ registry_url }}/{{ repository }}:{{ webserver_image_tag }}"
 
     - name: Login to registry
       containers.podman.podman_login:
@@ -95,8 +95,13 @@
         password: "{{ registry_password }}"
         registry: "{{ registry_url }}"
 
-    - name: Push de la imagen al repositorio
-      command: podman push "{{ registry_url }}/{{ repository }}:{{ tag }}"
+    - name: Push the image to the registry
+      command: podman push "{{ registry_url }}/{{ repository }}:{{ webserver_image_tag }}"
       become: true
+
+    - name: Recursively remove temp directory
+      ansible.builtin.file:
+        path: webserver_tmp
+        state: absent
 
 
