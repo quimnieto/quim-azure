@@ -13,6 +13,12 @@ provider "azurerm" {
   features {}
 }
 
+module "resource_group" {
+    source                  = "./modules/resource-group"
+    resource_group_name     = var.resource_group_name
+    location                = var.location
+}
+
 module "container_registry" {
     source                  = "./modules/container-registry"
     resource_group_name     = var.resource_group_name
