@@ -23,3 +23,8 @@ output "vm_public_ip" {
 output "ssh_user" {
   value = module.virtual_machine.ssh_user
 }
+
+output "kube_config" {
+  value = module.aks_cluster.kube_config
+  sensitive = true
+}

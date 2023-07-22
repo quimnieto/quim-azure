@@ -21,3 +21,14 @@ resource "azurerm_role_assignment" "acrPull" {
     scope                            = var.acr_id
     skip_service_principal_aad_check = true
 }
+
+# resource "kubernetes_storage_class" "azure_disk" {
+#   metadata {
+#     name = "azure-disk-storage"
+#   }
+#
+#   storage_provisioner = "kubernetes.io/azure-disk"
+#   parameters = {
+#     storageaccounttype = "Standard_LRS"
+#   }
+# }
