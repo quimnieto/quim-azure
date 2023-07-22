@@ -6,13 +6,6 @@
     - vars/container_registry_vars.yml
     - vars/00_vars.yml
   tasks:
-    - name: Install tools
-      ansible.builtin.apt:
-        pkg:
-        - podman
-        - skopeo
-        - openssl
-
     - name: Create temp workdir
       file:
         path: webserver_tmp

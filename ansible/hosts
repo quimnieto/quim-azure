@@ -1,5 +1,5 @@
 [webservers]
-51.11.162.171 ip_interna=10.0.2.4
+20.108.8.197 ip_interna=10.0.2.4
 
 [kubernetes]
 20.49.216.204

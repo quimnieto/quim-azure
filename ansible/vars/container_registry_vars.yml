@@ -1,7 +1,8 @@
 registry_url: 'containerregistryquim.azurecr.io'
 repository: 'repositoryquim'
 registry_username: 'containerregistryquim'
-registry_password: 'J0dDsQDHO9rwTeTdlWvJE02bfRDRCDI5j0EqwzDb9r+ACRBjCfzk'
+#secret
+registry_password: ''
 
 #webserver
 webserver_image_tag: 'casopractico2'
