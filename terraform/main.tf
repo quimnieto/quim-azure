@@ -15,25 +15,24 @@ provider "azurerm" {
 
 module "resource_group" {
     source                  = "./modules/resource-group"
-    resource_group_name     = var.resource_group_name
     location                = var.location
 }
 
 module "container_registry" {
     source                  = "./modules/container-registry"
-    resource_group_name     = var.resource_group_name
+    resource_group_name     = module.resource_group.resource_group_name
     location                = var.location
 }
 
 module "virtual_machine" {
     source                  = "./modules/virtual-machine"
-    resource_group_name     = var.resource_group_name
+    resource_group_name     = module.resource_group.resource_group_name
     location                = var.location
 }
 
 module "aks_cluster" {
     source                  = "./modules/aks-cluster"
-    resource_group_name     = var.resource_group_name
+    resource_group_name     = module.resource_group.resource_group_name
     location                = var.location
     acr_id                  = module.container_registry.acr_id
 }

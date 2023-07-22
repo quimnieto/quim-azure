@@ -1,3 +1,7 @@
+output "resource_group_name" {
+  value = module.resource_group.resource_group_name
+}
+
 output "acr_login_server" {
   value = module.container_registry.acr_login_server
 }
